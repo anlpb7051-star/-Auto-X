@@ -1,4 +1,4 @@
-        from fastapi import FastAPI
+  from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
 app = FastAPI()
@@ -130,12 +130,10 @@ def dashboard():
                 const now = new Date();
                 const currentSec = now.getSeconds();
                 
-                // 30s countdown cycle (30 down to 0)
                 let secInCycle = currentSec % 30;
                 let countdown = 30 - secInCycle;
                 if (countdown === 30) countdown = 30;
 
-                // Exact 5-second final signal window (secInCycle >= 25 means countdown is 5 down to 0)
                 let isFinal5s = (secInCycle >= 25);
 
                 symbolList.forEach(code => {{
@@ -221,4 +219,4 @@ def dashboard():
 </html>
 """
     return html_content
-    
+          
