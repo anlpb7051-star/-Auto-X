@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 import requests
@@ -32,7 +33,13 @@ def get_market_data():
 
     now = datetime.now()
     current_second = now.second
-    is_final_5s = (25 <= current_second <= 29) or (55 <= current_second <= 59)
+    sec_in_cycle = current_second % 30
+    countdown = 30 - sec_in_cycle
+    if countdown == 30: 
+        countdown = 30
+
+    # ວິນາທີທີ 5 ລົງມາຮອດ 0 ວິ (ແປວ່າ sec_in_cycle ຕັ້ງແຕ່ 25 ເຖິງ 30)
+    is_final_5s = (sec_in_cycle >= 25) or (sec_in_cycle == 0)
 
     for item in SYMBOLS:
         sym = item["code"]
@@ -52,18 +59,24 @@ def get_market_data():
 
         if is_final_5s:
             if is_ut_buy:
-                signal = "UT BOT: 🟢 BUY (ແທ່ງຕໍ່ໄປມີແຮງຊື້)"
+                signal = "🟢 ⬆️ BUY (ແທ່ງຕໍ່ໄປມີໂອກາດຂຶ້ນ)"
                 sig_color = "#2ea043"
                 badge_bg = "#2ea04322"
+                arrow_icon = "⬆️"
+                arrow_color = "#2ea043"
             else:
-                signal = "UT BOT: 🔴 SELL (ແທ່ງຕໍ່ໄປມີແຮງຂາຍ)"
+                signal = "🔴 ⬇️ SELL (ແທ່ງຕໍ່ໄປມີໂອກາດລົງ)"
                 sig_color = "#f85149"
                 badge_bg = "#f8514922"
+                arrow_icon = "⬇️"
+                arrow_color = "#f85149"
             sound = True
         else:
-            signal = "⏳ UT BOT: ລໍວິນາທີທີ 25-30..."
+            signal = f"⏳ ລໍຖ້າສັນຍານ 5 ວິສຸດທ້າຍ... ({countdown} ວິ)"
             sig_color = "#8b949e"
             badge_bg = "#30363d"
+            arrow_icon = ""
+            arrow_color = "transparent"
             sound = False
 
         data_list.append({
@@ -79,7 +92,11 @@ def get_market_data():
             "badge_bg": badge_bg,
             "rsi": f"{rsi}",
             "ut_status": "UT BUY Signal" if is_ut_buy else "UT SELL Signal",
-            "sound": sound
+            "sound": sound,
+            "countdown": countdown,
+            "arrow_icon": arrow_icon,
+            "arrow_color": arrow_color,
+            "is_final_5s": is_final_5s
         })
     return data_list
 
@@ -90,13 +107,23 @@ def dashboard():
     
     cards_html = ""
     for r in results:
+        arrow_overlay_html = f"""
+        <div class="arrow-overlay" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.85); padding: 5px 10px; border-radius: 6px; font-size: 15px; font-weight: bold; color: {r['arrow_color']}; z-index: 5; border: 1px solid {r['arrow_color']};">
+            {r['arrow_icon']} {r['countdown']}s
+        </div>
+        """ if r['is_final_5s'] else f"""
+        <div class="arrow-overlay" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 6px; font-size: 13px; font-weight: bold; color: #8b949e; z-index: 5;">
+            ⏳ {r['countdown']}s
+        </div>
+        """
+
         cards_html += f"""
         <div class="card" style="border-top: 3px solid {r['sig_color']};">
             <div class="card-top">
                 <div class="asset-info">
                     <span class="icon">{r['icon']}</span>
                     <div>
-                        <div class="asset-name">{r['name']}/USDT</div>
+                        <div class="asset-name">{r['name']}/USDT <span style="font-size: 16px; margin-left: 5px; color: {r['arrow_color']};">{r['arrow_icon']}</span></div>
                         <div class="asset-price">${r['price']} <span style="color: {'#2ea043' if '+' in r['change'] else '#f85149'};">({r['change']})</span></div>
                     </div>
                 </div>
@@ -109,7 +136,8 @@ def dashboard():
                 {r['signal']}
             </div>
 
-            <div class="tradingview-widget-container" style="margin-top: 8px;">
+            <div class="tradingview-widget-container" style="margin-top: 8px; position: relative;">
+                {arrow_overlay_html}
                 <div id="tv-chart-{r['name']}" style="height: 190px; width: 100%;"></div>
                 <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
                 <script type="text/javascript">
@@ -158,8 +186,7 @@ def dashboard():
 <html lang="lo">
 <head>
     <meta charset="UTF-8">
-    <title>UT Bot Auto Signal V2 - Pro</title>
-    <meta http-equiv="refresh" content="30">
+    <title>UT Bot Auto Signal V2 - 5s Final Countdown</title>
     <style>
         body {{ font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #0b0f19; color: #f0f6fc; margin: 0; padding: 20px; }}
         .header {{ display: flex; justify-content: space-between; align-items: center; background: #161b22; padding: 15px 25px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 20px; }}
@@ -202,22 +229,35 @@ def dashboard():
             osc.start();
             osc.stop(ctx.currentTime + 0.5);
         }}
+
+        function startTimer() {{
+            setInterval(() => {{
+                const now = new Date();
+                const sec = now.getSeconds();
+                if (sec === 0 || sec === 30) {{
+                    window.location.reload();
+                }}
+            }}, 1000);
+        }}
+
         window.onload = function() {{
+            startTimer();
             let shouldPlay = {"true" if any_sound else "false"};
             if (shouldPlay && sessionStorage.getItem('soundEnabled') === 'true') {{
                 playSound();
             }}
         }};
+
         function enableSound() {{
             sessionStorage.setItem('soundEnabled', 'true');
-            alert('ເປີດລະບົບສຽງແຈ້ງເຕືອນ UT Bot ສຳເລັດ! 🔊');
+            alert('ເປີດລະບົບສຽງແຈ້ງເຕືອນສຳເລັດ! 🔊');
             playSound();
         }}
     </script>
 </head>
 <body>
     <div class="header">
-        <div class="logo">🤖 UT Bot Auto Signal V2</div>
+        <div class="logo">🤖 UT Bot Auto Signal V2 (5s Final Countdown)</div>
         <div>
             <button class="audio-btn" onclick="enableSound()">🔊 ເປີດສຽງແຈ້ງເຕືອນ</button>
         </div>
@@ -230,6 +270,6 @@ def dashboard():
 </html>
 """
     return html_content
-    
-                        
+            
+
     
