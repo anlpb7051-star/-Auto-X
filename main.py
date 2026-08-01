@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+   from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import json
 
@@ -23,7 +23,7 @@ def dashboard():
         with open("index.html", "r", encoding="utf-8") as f:
             html_template = f.read()
     except Exception:
-        return "Error: index.html not found."
+        return "Error: index.html not found. Please check file name."
     
     cards_html = ""
     for item in SYMBOLS:
@@ -42,7 +42,7 @@ def dashboard():
                 </div>
             </div>
             <div class="buy-pill" id="pill-{item['code']}" style="background: #30363d; color: #8b949e; border: 1px solid #30363d;">
-                ⏳ UT Bot: ລໍຖ້າສັນຍານ...
+                ⏳ UT Bot: Syncing...
             </div>
             <div class="tradingview-widget-container" style="margin-top: 8px; position: relative;">
                 <div class="arrow-overlay" id="overlay-{item['code']}" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.85); padding: 5px 10px; border-radius: 6px; font-size: 15px; font-weight: bold; color: #8b949e; z-index: 5; border: 1px solid #8b949e;">
@@ -83,3 +83,4 @@ def dashboard():
     html_content = html_template.replace("<!--CARDS_PLACEHOLDER-->", cards_html)
     html_content = html_content.replace("<!--SYMBOLS_PLACEHOLDER-->", json.dumps(symbol_codes))
     return html_content
+             
