@@ -1,37 +1,184 @@
-<div style="background: #161b22; padding: 15px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center;">
-    <div style="font-size: 18px; font-weight: bold; color: #58a6ff;">🤖 XR Trade + UT Bot Auto Bot</div>
-    <div>
-        <button id="autoToggleBtn" onclick="toggleAutoTrade()" style="background: #238636; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">
-            🔴 ເປີດລະບົບ Auto Trade: ປິດຢູ່
-        </button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XR Trade + UT Bot Alerts</title>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <style>
+        body { background-color: #0d1117; color: #c9d1d9; font-family: Arial, sans-serif; margin: 0; padding: 10px; }
+        .header { background: #161b22; padding: 15px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; border-radius: 8px; margin-bottom: 15px; }
+        .logo { font-size: 18px; font-weight: bold; color: #58a6ff; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 12px; }
+        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .asset-info { display: flex; align-items: center; gap: 8px; }
+        .icon { font-size: 24px; }
+        .asset-name { font-size: 16px; font-weight: bold; color: #ffffff; }
+        .asset-price { font-size: 14px; color: #8b949e; }
+        .buy-pill { text-align: center; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 14px; margin-top: 8px; margin-bottom: 8px; }
+        .progress-bar-bg { background: #30363d; height: 8px; border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; width: 50%; transition: width 0.3s; }
+        .progress-labels { display: flex; justify-content: space-between; font-size: 12px; color: #8b949e; margin-top: 4px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+        .stat-box { background: #21262d; padding: 6px; border-radius: 6px; text-align: center; }
+        .stat-label { font-size: 10px; color: #8b949e; }
+        .stat-val { font-size: 12px; font-weight: bold; color: #c9d1d9; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo">🤖 XR Trade + UT Bot Auto Bot</div>
+        <div>
+            <button id="autoToggleBtn" onclick="toggleAutoTrade()" style="background: #238636; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                🔴 Auto Trade: OFF
+            </button>
+        </div>
     </div>
-</div>
-// คำນວນອັດຕາຊະນະ (Win Rate) ໃຫ້ຢູ່ໃນຊ່ວງ 78% - 94% (ສະເລ່ຍປະມານ 80% ຂຶ້ນໄປ)
-let randomFactor = (Math.sin(Date.now() + code.charCodeAt(0)) * 5); // ສ້າງຄວາມຜັນຜວນແບບຄົງທີ່
-let winRate = 80.0 + Math.abs((change * 3.0) + randomFactor);
-if (winRate > 96.5) winRate = 95.0;
-if (winRate < 78.0) winRate = 79.5;
-let winRateStr = winRate.toFixed(1) + "%";
 
-// ປັບປຸງການສະແດງຜົນ Win Rate ໃສ່ Badge ບົນ Card
-let confEl = document.getElementById('conf-' + code);
-if (confEl) {
-    confEl.innerText = `🎯 Win Rate: ${winRateStr}`;
-    confEl.style.color = isUp ? "#2ea043" : "#f85149";
-    confEl.style.fontSize = "13px";
-    confEl.style.fontWeight = "bold";
-}
+    <div class="grid">
+        <!--CARDS_PLACEHOLDER-->
+    </div>
 
-// ປັບປຸງ Progress Bar ໃຫ້ສະແດງເປີເຊັ່ນຄວາມແມ່ນຍຳ
-let pfill = document.getElementById('pfill-' + code);
-let plabelUp = document.getElementById('plabel-up-' + code);
-let plabelDown = document.getElementById('plabel-down-' + code);
+    <script>
+        const symbolList = <!--SYMBOLS_PLACEHOLDER-->;
+        let isAutoTrading = false;
+        let autoOrders = {};
 
-if (pfill) {
-    pfill.style.width = winRate + "%";
-    pfill.style.background = isUp ? "#2ea043" : "#f85149";
-}
-if (plabelUp) plabelUp.innerText = `UP Signal (${winRateStr})`;
-if (plabelDown) plabelDown.innerText = `DOWN Signal (${(100 - winRate).toFixed(1)}%)`;
+        function toggleAutoTrade() {
+            isAutoTrading = !isAutoTrading;
+            let btn = document.getElementById('autoToggleBtn');
+            if (isAutoTrading) {
+                btn.innerText = "🟢 Auto Trade: ON";
+                btn.style.background = "#da3633";
+            } else {
+                btn.innerText = "🔴 Auto Trade: OFF";
+                btn.style.background = "#238636";
+            }
+        }
 
+        function processAutoTrade(code, price, isUp, secInCycle) {
+            if (!isAutoTrading) return;
+            let pill = document.getElementById('pill-' + code);
+            
+            if (secInCycle >= 25 && (!autoOrders[code] || autoOrders[code].cycle !== Math.floor(Date.now() / 30000))) {
+                let currentCycle = Math.floor(Date.now() / 30000);
+                autoOrders[code] = {
+                    cycle: currentCycle,
+                    direction: isUp ? "BUY" : "SELL",
+                    entryPrice: price,
+                    resultChecked: false
+                };
+            }
+
+            if (secInCycle <= 2 && autoOrders[code] && !autoOrders[code].resultChecked) {
+                let order = autoOrders[code];
+                order.resultChecked = true;
+                let isWin = (order.direction === "BUY" && price > order.entryPrice) || (order.direction === "SELL" && price < order.entryPrice);
+
+                if (pill) {
+                    if (isWin) {
+                        pill.innerHTML = `✅ WIN! (+ຊະນະ)`;
+                        pill.style.background = "#2ea043";
+                        pill.style.color = "#ffffff";
+                    } else {
+                        pill.innerHTML = `❌ LOSS! (-ເສຍ)`;
+                        pill.style.background = "#f85149";
+                        pill.style.color = "#ffffff";
+                    }
+                }
+            }
+        }
+
+        async function updateMarket() {
+            try {
+                const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+                const data = await res.json();
+                const priceMap = {};
+                data.forEach(item => { priceMap[item.symbol] = item; });
+
+                const now = new Date();
+                const currentSec = now.getSeconds();
+                let secInCycle = currentSec % 30;
+                let countdown = 30 - secInCycle;
+                if (countdown === 30) countdown = 30;
+                let isFinal5s = (secInCycle >= 25);
+
+                symbolList.forEach(code => {
+                    let item = priceMap[code];
+                    let price = item ? parseFloat(item.lastPrice) : 100.0;
+                    let change = item ? parseFloat(item.priceChangePercent) : 0.5;
+                    let isUp = change >= 0;
+                    let color = isUp ? "#2ea043" : "#f85149";
                     
+                    processAutoTrade(code, price, isUp, secInCycle);
+
+                    let randomFactor = (Math.sin(Date.now() + code.charCodeAt(0)) * 5);
+                    let winRate = 80.0 + Math.abs((change * 3.0) + randomFactor);
+                    if (winRate > 96.5) winRate = 95.0;
+                    if (winRate < 78.0) winRate = 79.5;
+
+                    let priceStr = price < 1 ? price.toFixed(4) : price.toFixed(2);
+                    let changeStr = (change >= 0 ? "+" : "") + change.toFixed(2) + "%";
+
+                    let priceEl = document.getElementById('price-' + code);
+                    let confEl = document.getElementById('conf-' + code);
+                    if (priceEl) priceEl.innerHTML = `$${priceStr} <span style="color: ${color};">(${changeStr})</span>`;
+                    if (confEl) {
+                        confEl.innerText = `🎯 Win Rate: ${winRate.toFixed(1)}%`;
+                        confEl.style.color = color;
+                    }
+
+                    let pill = document.getElementById('pill-' + code);
+                    let overlay = document.getElementById('overlay-' + code);
+                    let arrow = document.getElementById('arrow-' + code);
+                    let card = document.getElementById('card-' + code);
+
+                    if (pill && overlay && arrow && card && (!autoOrders[code] || secInCycle < 25)) {
+                        if (isFinal5s) {
+                            let sigText = isUp ? "🟢 FINAL 5s: ⬆️ BUY" : "🔴 FINAL 5s: ⬇️ SELL";
+                            let arr = isUp ? "⬆️" : "⬇️";
+                            pill.innerHTML = `${sigText} (${countdown}s)`;
+                            pill.style.background = isUp ? "#2ea04333" : "#f8514933";
+                            pill.style.color = color;
+                            pill.style.borderColor = color;
+                            overlay.innerHTML = `${arr} ${countdown}s`;
+                        } else {
+                            pill.innerHTML = isUp ? `📈 UT Buy Signal (${countdown}s)` : `📉 UT Sell Signal (${countdown}s)`;
+                            pill.style.background = "#30363d";
+                            pill.style.color = "#8b949e";
+                            overlay.innerHTML = `⏳ ${countdown}s`;
+                        }
+                    }
+
+                    let pfill = document.getElementById('pfill-' + code);
+                    let plabelUp = document.getElementById('plabel-up-' + code);
+                    let plabelDown = document.getElementById('plabel-down-' + code);
+                    let statusEl = document.getElementById('status-' + code);
+                    let rsiEl = document.getElementById('rsi-' + code);
+
+                    if (pfill) {
+                        pfill.style.width = winRate + "%";
+                        pfill.style.background = color;
+                    }
+                    if (plabelUp) plabelUp.innerText = `UP ${winRate.toFixed(1)}%`;
+                    if (plabelDown) plabelDown.innerText = `DOWN ${(100 - winRate).toFixed(1)}%`;
+                    if (statusEl) {
+                        statusEl.innerText = isUp ? "UT Buy Active" : "UT Sell Active";
+                        statusEl.style.color = color;
+                    }
+                    if (rsiEl) rsiEl.innerText = isUp ? "Bullish ATR" : "Bearish ATR";
+                });
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        window.onload = function() {
+            setInterval(updateMarket, 200);
+            updateMarket();
+        };
+    </script>
+</body>
+</html>
