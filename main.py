@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+        from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
 app = FastAPI()
@@ -36,7 +36,7 @@ def dashboard():
             </div>
 
             <div class="buy-pill" id="pill-{item['code']}" style="background: #30363d; color: #8b949e; border: 1px solid #30363d;">
-                ⏳ ລໍຖ້າຮອບໃໝ່...
+                ⏳ UT Bot: ລໍຖ້າສັນຍານ...
             </div>
 
             <div class="tradingview-widget-container" style="margin-top: 8px; position: relative;">
@@ -74,12 +74,12 @@ def dashboard():
 
             <div class="stats-grid">
                 <div class="stat-box">
-                    <div class="stat-label">XR Trade Status</div>
+                    <div class="stat-label">UT Bot Status</div>
                     <div class="stat-val" id="status-{item['code']}">Syncing...</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">RSI Filter</div>
-                    <div class="stat-val" id="rsi-{item['code']}">50.0</div>
+                    <div class="stat-label">ATR Trend Filter</div>
+                    <div class="stat-val" id="rsi-{item['code']}">Neutral</div>
                 </div>
             </div>
         </div>
@@ -89,13 +89,11 @@ def dashboard():
 <html lang="lo">
 <head>
     <meta charset="UTF-8">
-    <title>XR Trade - 30s Exact Countdown & 10s Signal</title>
+    <title>XR Trade - UT Bot & 5s Final Signal</title>
     <style>
         body {{ font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #0b0f19; color: #f0f6fc; margin: 0; padding: 20px; }}
         .header {{ display: flex; justify-content: space-between; align-items: center; background: #161b22; padding: 15px 25px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 20px; }}
         .logo {{ font-size: 22px; font-weight: bold; color: #58a6ff; display: flex; align-items: center; gap: 8px; }}
-        .audio-btn {{ background: #238636; color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; }}
-        .audio-btn:hover {{ background: #2ea043; }}
         
         .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; }}
         .card {{ background: #161b22; border: 1px solid #30363d; border-radius: 14px; padding: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }}
@@ -120,20 +118,6 @@ def dashboard():
     </style>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script>
-        function playSound() {{
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-            osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
-            gain.gain.setValueAtTime(0.3, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.5);
-        }}
-
         const symbolList = {[s['code'] for s in SYMBOLS]};
 
         async function updateMarket() {{
@@ -146,11 +130,13 @@ def dashboard():
                 const now = new Date();
                 const currentSec = now.getSeconds();
                 
+                // 30s countdown cycle (30 down to 0)
                 let secInCycle = currentSec % 30;
                 let countdown = 30 - secInCycle;
                 if (countdown === 30) countdown = 30;
 
-                let isFinal10s = (secInCycle >= 20);
+                // Exact 5-second final signal window (secInCycle >= 25 means countdown is 5 down to 0)
+                let isFinal5s = (secInCycle >= 25);
 
                 symbolList.forEach(code => {{
                     let item = priceMap[code];
@@ -162,8 +148,7 @@ def dashboard():
                     let isUp = change >= 0;
                     let color = isUp ? "#2ea043" : "#f85149";
                     
-                    let conf = Math.min(Math.max(72.5 + Math.abs(change * 3.8), 70.0), 99.0).toFixed(1);
-                    let rsi = Math.min(Math.max(50 + (change * 3.0), 1.0), 99.0).toFixed(1);
+                    let conf = Math.min(Math.max(75.0 + Math.abs(change * 4.0), 70.0), 98.5).toFixed(1);
 
                     document.getElementById('price-' + code).innerHTML = `$${{priceStr}} <span style="color: ${{color}};">(${{changeStr}})</span>`;
                     document.getElementById('conf-' + code).innerText = Math.round(conf) + "%";
@@ -174,11 +159,11 @@ def dashboard():
                     let arrow = document.getElementById('arrow-' + code);
                     let card = document.getElementById('card-' + code);
 
-                    if (isFinal10s) {{
-                        let sigText = isUp ? "🟢 ⬆️ BUY (ແທ່ງຕໍ່ໄປມີໂອກາດຂຶ້ນ)" : "🔴 ⬇️ SELL (ແທ່ງຕໍ່ໄປມີໂອກາດລົງ)";
+                    if (isFinal5s) {{
+                        let sigText = isUp ? "🟢 ເບິດເວລາ: ⬆️ BUY (ກຽມກົດຂຶ້ນ!)" : "🔴 ເບິດເວລາ: ⬇️ SELL (ກຽມກົດລົງ!)";
                         let arr = isUp ? "⬆️" : "⬇️";
-                        pill.innerHTML = sigText;
-                        pill.style.background = isUp ? "#2ea04322" : "#f8514922";
+                        pill.innerHTML = `${{sigText}} (${{countdown}}s)`;
+                        pill.style.background = isUp ? "#2ea04333" : "#f8514933";
                         pill.style.color = color;
                         pill.style.borderColor = color;
 
@@ -190,17 +175,18 @@ def dashboard():
                         arrow.style.color = color;
                         card.style.borderTop = `3px solid ${{color}}`;
                     }} else {{
-                        pill.innerHTML = `⏳ ລໍຖ້າສັນຍານ 10 ວິສຸດທ້າຍ... (${{countdown}} ວິ)`;
+                        let utStatus = isUp ? "UT Bot: 📈 ແຮງຊື້ຄອບຄອງ" : "UT Bot: 📉 ແຮງຂາຍຄອບຄອງ";
+                        pill.innerHTML = `${{utStatus}} (${{countdown}}s)`;
                         pill.style.background = "#30363d";
                         pill.style.color = "#8b949e";
                         pill.style.borderColor = "#30363d";
 
                         overlay.innerHTML = `⏳ ${{countdown}}s`;
                         overlay.style.color = "#8b949e";
-                        overlay.style.borderColor = "#30363d";
+                        overlay.style.borderColor = "#8b949e";
 
                         arrow.innerHTML = "";
-                        card.style.borderTop = "3px solid #8b949e";
+                        card.style.borderTop = "3px solid #30363d";
                     }}
 
                     document.getElementById('pfill-' + code).style.width = conf + "%";
@@ -208,9 +194,9 @@ def dashboard():
                     document.getElementById('plabel-up-' + code).innerText = "UP " + Math.round(conf) + "%";
                     document.getElementById('plabel-down-' + code).innerText = "DOWN " + (100 - Math.round(conf)) + "%";
 
-                    document.getElementById('status-' + code).innerText = isUp ? "XR BUY Signal" : "XR SELL Signal";
+                    document.getElementById('status-' + code).innerText = isUp ? "UT Buy Signal" : "UT Sell Signal";
                     document.getElementById('status-' + code).style.color = color;
-                    document.getElementById('rsi-' + code).innerText = rsi;
+                    document.getElementById('rsi-' + code).innerText = isUp ? "Bullish ATR" : "Bearish ATR";
                 }});
             }} catch(e) {{
                 console.error(e);
@@ -221,20 +207,11 @@ def dashboard():
             setInterval(updateMarket, 200);
             updateMarket();
         }};
-
-        function enableSound() {{
-            sessionStorage.setItem('soundEnabled', 'true');
-            alert('ເປີດລະບົບສຽງແຈ້ງເຕືອນສຳເລັດ! 🔊');
-            playSound();
-        }}
     </script>
 </head>
 <body>
     <div class="header">
-        <div class="logo">🤖 XR Trade Auto Signal - 30s Exact & 10s Countdown</div>
-        <div>
-            <button class="audio-btn" onclick="enableSound()">🔊 ເປີດສຽງແຈ້ງເຕືອນ</button>
-        </div>
+        <div class="logo">🤖 XR Trade + UT Bot Alerts (5s Final Signal)</div>
     </div>
 
     <div class="grid">
@@ -244,3 +221,4 @@ def dashboard():
 </html>
 """
     return html_content
+    
