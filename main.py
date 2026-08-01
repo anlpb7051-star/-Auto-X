@@ -1,4 +1,4 @@
-     from fastapi import FastAPI
+ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
 app = FastAPI()
@@ -219,4 +219,4 @@ def dashboard():
 </html>
 """
     return html_content
-     
+                
