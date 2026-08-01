@@ -6,7 +6,6 @@ import random
 
 app = FastAPI()
 
-# ລາຍການຄູ່ເງິນ ແລະ ທອງຄຳ
 SYMBOLS = [
     {"code": "BTCUSDT", "tv": "BINANCE:BTCUSDT", "name": "BTC", "icon": "🪙"},
     {"code": "ETHUSDT", "tv": "BINANCE:ETHUSDT", "name": "ETH", "icon": "💎"},
@@ -33,11 +32,10 @@ def get_market_data():
 
     now = datetime.now()
     current_second = now.second
-    # 5 ວິນາທີສຸດທ້າຍຂອງຮອບ 30 ວິນາທີ (ຄືວິນາທີທີ່ 25-29 ແລະ 55-59)
     is_final_5s = (25 <= current_second <= 29) or (55 <= current_second <= 59)
 
     for item in SYMBOLS:
-        sym = item["code"]จำ
+        sym = item["code"]
         if sym in price_map:
             p_data = price_map[sym]
             price = float(p_data['lastPrice'])
@@ -46,7 +44,6 @@ def get_market_data():
             price = random.uniform(10, 60000)
             change = random.uniform(-3.0, 3.0)
 
-        # จำລອງ UT Bot Alerts & Trend Analysis ແທ່ງຕໍ່ແທ່ງ
         is_ut_buy = change >= 0
         confidence = round(min(max(72.5 + abs(change * 3.8), 70.0), 99.0), 1)
         rsi = round(50 + (change * 3.0), 1)
@@ -108,12 +105,10 @@ def dashboard():
                 </div>
             </div>
 
-            <!-- UT Bot Alert Signal Box -->
             <div class="buy-pill" style="background: {r['badge_bg']}; color: {r['sig_color']}; border: 1px solid {r['sig_color']};">
                 {r['signal']}
             </div>
 
-            <!-- TradingView Live Candlestick Chart Widget -->
             <div class="tradingview-widget-container" style="margin-top: 8px;">
                 <div id="tv-chart-{r['name']}" style="height: 190px; width: 100%;"></div>
                 <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
@@ -235,4 +230,6 @@ def dashboard():
 </html>
 """
     return html_content
-  
+    
+                        
+    
